@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "description": "ChatFinity desktop client",
-  "author": "MusicCityTelecom",
+  "author": {
+    "name": "MusicCityTelecom",
+    "email": "chat@innaware.net"
+  },
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
@@ -59,7 +62,7 @@
         "deb"
       ],
       "category": "Network",
-      "maintainer": "MusicCityTelecom",
+      "maintainer": "MusicCityTelecom <chat@innaware.net>",
       "icon": "assets/icon.png",
       "syncDesktopName": true
     },
@@ -67,5 +70,6 @@
     "electronVersion": "45.2.0",
     "executableName": "chatfinity"
   },
-  "desktopName": "chatfinity.desktop"
+  "desktopName": "chatfinity.desktop",
+  "homepage": "https://github.com/MusicCityTelecom/ChatFinity_App"
 }
