@@ -7,7 +7,7 @@ COPY apps/web/package.json apps/web/package.json
 COPY apps/desktop/package.json apps/desktop/package.json
 RUN npm ci --no-audit --no-fund
 COPY . .
-RUN npm run build && npm prune --omit=dev --ignore-scripts
+RUN npm run build && npm prune --omit=dev --ignore-scripts --no-audit --no-fund --offline
 FROM node:24-bookworm-slim
 ENV NODE_ENV=production PORT=3001 WEB_DIR=/app/apps/web/dist UPLOAD_DIR=/data/uploads
 WORKDIR /app
