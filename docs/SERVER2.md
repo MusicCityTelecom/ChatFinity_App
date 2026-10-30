@@ -55,6 +55,10 @@ curl --fail https://chat.innaware.net/api/health
 
 Open the site, sign up with a real email address, verify the email, create the first organization, and send an invitation to a second test account. Confirm the browser shows **Connected**.
 
+### Single-host signaling option used on server2
+
+`deploy/apache-chatfinity-single-host.conf` serves the web client and meeting signaling under one certificate. Set `LIVEKIT_URL=wss://chat.innaware.net/media` in the private environment and use that template instead of the two-host template. This avoids an extra DNS record for signaling; it does not remove the requirement for reachable media ports and TURN/TLS on restricted networks. The internal LiveKit URL remains private. Apache 2.4.47+ handles HTTP and WebSocket upgrades through the same route.
+
 ## 4. Enable audio, video and screen sharing
 
 The API integrates with LiveKit; it does not implement a media transport itself. The configuration uses **meet.chat.innaware.net** for secure signaling. Its DNS record should point directly to server2; standard HTTP-only CDN proxies cannot carry the required media traffic.
