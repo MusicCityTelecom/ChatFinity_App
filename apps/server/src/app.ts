@@ -30,6 +30,14 @@ export async function createApp(
   const app = Fastify({
     logger: logger
       ? {
+          serializers: {
+            req(request: { method?: string; url?: string }) {
+              return {
+                method: request.method,
+                url: request.url?.split("?")[0],
+              };
+            },
+          },
           redact: [
             "req.headers.cookie",
             "req.headers.authorization",
@@ -63,6 +71,7 @@ export async function createApp(
         upgradeInsecureRequests: c.production ? [] : null,
       },
     },
+    referrerPolicy: { policy: "no-referrer" },
     hsts: c.production ? { maxAge: 31536000 } : false,
   });
   await app.register(rateLimit, {
@@ -142,14 +151,12 @@ export async function createApp(
         ? e.statusCode
         : 500;
     if (status === 500) req.log.error({ err }, "Request failed");
-    return reply
-      .code(status)
-      .send({
-        error:
-          status === 500
-            ? "Something went wrong. Please try again."
-            : e.message || "Request failed.",
-      });
+    return reply.code(status).send({
+      error:
+        status === 500
+          ? "Something went wrong. Please try again."
+          : e.message || "Request failed.",
+    });
   });
   const events = realtime(app, db, c);
   const mediaClient = new RoomServiceClient(
