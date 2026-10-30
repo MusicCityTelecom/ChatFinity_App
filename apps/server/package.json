@@ -1,0 +1,34 @@
+{
+  "name": "@chatfinity/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --import tsx --watch --env-file-if-exists=../../.env src/index.ts",
+    "build": "tsc && mkdir -p dist/db && cp src/db/schema.sql dist/db/",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx test/platform.test.ts",
+    "migrate": "node --import tsx --env-file-if-exists=../../.env src/migrate.ts",
+    "seed:demo": "node --import tsx --env-file-if-exists=../../.env src/seed.ts"
+  },
+  "dependencies": {
+    "fastify": "^5.12.7",
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/helmet": "^13.2.0",
+    "@fastify/rate-limit": "^11.2.1",
+    "@fastify/multipart": "^10.1.6",
+    "@fastify/static": "^10.1.8",
+    "@fastify/websocket": "^11.3.4",
+    "pg": "^8.23.1",
+    "zod": "^4.6.7",
+    "nodemailer": "^10.3.1",
+    "livekit-server-sdk": "^2.19.2"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.6",
+    "@types/nodemailer": "^7.0.4",
+    "@types/ws": "^8.18.1",
+    "@electric-sql/pglite": "^0.5.13",
+    "tsx": "^4.23.15"
+  }
+}

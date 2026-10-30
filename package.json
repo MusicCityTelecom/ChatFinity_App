@@ -1,0 +1,30 @@
+{
+  "name": "chatfinity",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/server",
+    "apps/web",
+    "apps/desktop"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "concurrently -n server,web \"npm run dev -w @chatfinity/server\" \"npm run dev -w @chatfinity/web\"",
+    "build": "npm run build -w @chatfinity/web && npm run build -w @chatfinity/server",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test -w @chatfinity/server",
+    "test:e2e": "playwright test",
+    "check": "npm run typecheck && npm test && npm run build",
+    "desktop": "npm run start -w @chatfinity/desktop",
+    "desktop:pack": "npm run pack -w @chatfinity/desktop"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^24.0.0",
+    "concurrently": "^9.2.1",
+    "prettier": "^3.9.10",
+    "typescript": "^7.0.2"
+  }
+}

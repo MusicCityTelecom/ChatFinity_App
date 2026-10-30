@@ -1,0 +1,70 @@
+name: chatfinity
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: chatfinity
+      POSTGRES_USER: chatfinity
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Generate .env.production first}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatfinity -d chatfinity"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [private]
+  api:
+    build:
+      context: ..
+    restart: unless-stopped
+    init: true
+    env_file: ../.env.production
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgres://chatfinity:${POSTGRES_PASSWORD}@db:5432/chatfinity
+      UPLOAD_DIR: /data/uploads
+      WEB_DIR: /app/apps/web/dist
+      TRUST_PROXY: ${TRUST_PROXY:-172.30.48.1}
+    ports: ["127.0.0.1:3080:3001"]
+    volumes:
+      - attachments:/data/uploads
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [private]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+  edge:
+    image: caddy:2-alpine
+    profiles: [edge]
+    network_mode: host
+    restart: unless-stopped
+    env_file: ../.env.production
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+  livekit:
+    image: livekit/livekit-server:v1.13.11
+    profiles: [meetings]
+    network_mode: host
+    restart: unless-stopped
+    command: ["--config", "/etc/livekit.yaml"]
+    volumes:
+      - ./livekit.generated.yaml:/etc/livekit.yaml:ro
+volumes:
+  postgres_data:
+  attachments:
+  caddy_data:
+  caddy_config:
+networks:
+  private:
+    ipam:
+      config:
+        - subnet: 172.30.48.0/24
+          gateway: 172.30.48.1

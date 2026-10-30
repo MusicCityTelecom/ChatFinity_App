@@ -1,0 +1,11 @@
+.git
+node_modules
+**/node_modules
+.env
+.env.*
+.data
+**/dist
+**/release
+playwright-report
+test-results
+deploy/*.generated.yaml

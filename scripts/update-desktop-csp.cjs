@@ -1,0 +1,11 @@
+const fs = require("node:fs");
+const path = require("node:path");
+const crypto = require("node:crypto");
+const file = path.resolve(__dirname, "../apps/desktop/setup.html");
+let html = fs.readFileSync(file, "utf8");
+const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+if (!script) throw new Error("Missing setup script.");
+const hash = crypto.createHash("sha256").update(script).digest("base64");
+html = html.replace(/sha256-[A-Za-z0-9+/=]+/, "sha256-" + hash);
+fs.writeFileSync(file, html);
+console.log("Updated desktop setup CSP.");

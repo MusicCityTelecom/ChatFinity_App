@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+!.env.example
+dist/
+release/
+playwright-report/
+test-results/
+.data/
+*.log
+*.tsbuildinfo
+.DS_Store
+deploy/*.generated.yaml

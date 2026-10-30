@@ -1,0 +1,67 @@
+{
+  "name": "@chatfinity/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ChatFinity desktop client",
+  "author": "MusicCityTelecom",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "release": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^45.2.0",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.musiccitytelecom.chatfinity",
+    "productName": "ChatFinity",
+    "asar": true,
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "setup.html",
+      "package.json",
+      "assets/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "category": "public.app-category.social-networking",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "hardenedRuntime": true,
+      "entitlements": "entitlements.mac.plist",
+      "entitlementsInherit": "entitlements.mac.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "ChatFinity needs your microphone for meetings.",
+        "NSCameraUsageDescription": "ChatFinity needs your camera for video meetings."
+      },
+      "icon": "assets/icon.icns"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Network",
+      "maintainer": "MusicCityTelecom",
+      "icon": "assets/icon.png"
+    },
+    "publish": null
+  }
+}

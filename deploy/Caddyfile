@@ -1,0 +1,13 @@
+{
+    email {$ACME_EMAIL}
+}
+{$CHAT_HOST:chat.innaware.net} {
+    encode zstd gzip
+    request_body {
+        max_size 22MB
+    }
+    reverse_proxy 127.0.0.1:3080
+}
+{$MEET_HOST:meet.chat.innaware.net} {
+    reverse_proxy 127.0.0.1:7880
+}
