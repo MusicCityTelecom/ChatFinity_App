@@ -68,7 +68,8 @@
     },
     "publish": null,
     "electronVersion": "45.2.0",
-    "executableName": "chatfinity"
+    "executableName": "chatfinity",
+    "artifactName": "ChatFinity-${version}-${os}-${arch}.${ext}"
   },
   "desktopName": "chatfinity.desktop",
   "homepage": "https://github.com/MusicCityTelecom/ChatFinity_App"
