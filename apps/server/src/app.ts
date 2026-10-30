@@ -17,6 +17,9 @@ import { authRoutes } from "./auth.js";
 import { orgRoutes } from "./organizations.js";
 import { chatRoutes } from "./chat.js";
 import { fileRoutes } from "./files.js";
+import { adminRoutes } from "./admin.js";
+import { onboardingRoutes } from "./onboarding.js";
+import { broadcastRoutes } from "./broadcasts.js";
 import { meetingRoutes } from "./meetings.js";
 export async function createApp(
   db: DB,
@@ -108,7 +111,7 @@ export async function createApp(
     if (!token) fail(401, "Please sign in.");
     const sessionHash = hash(token),
       [u] = await db.q<User>(
-        `SELECT u.id,u.email,u.name,u.verified_at,u.status,s.csrf FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now()`,
+        `SELECT u.id,u.email,u.name,u.verified_at,u.status,u.is_system_admin,u.can_create_org,u.must_change_password,s.csrf FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.disabled_at IS NULL`,
         [sessionHash],
       );
     if (!u) fail(401, "Your session has expired. Please sign in.");
@@ -118,11 +121,19 @@ export async function createApp(
       name: u.name,
       verified_at: u.verified_at,
       status: u.status,
+      is_system_admin: u.is_system_admin,
+      can_create_org: u.can_create_org,
+      must_change_password: u.must_change_password,
     };
     req.sessionHash = sessionHash;
     req.csrf = u.csrf;
     if (writes && req.headers["x-csrf-token"] !== u.csrf)
       fail(403, "Session security token expired. Reload and try again.");
+    if (
+      u.must_change_password &&
+      !["/api/auth/change-password", "/api/auth/logout"].includes(path)
+    )
+      fail(403, "Change your temporary password before continuing.");
     if (
       !u.verified_at &&
       ![
@@ -188,6 +199,9 @@ export async function createApp(
   chatRoutes(ctx);
   fileRoutes(ctx);
   meetingRoutes(ctx);
+  adminRoutes(ctx);
+  onboardingRoutes(ctx);
+  broadcastRoutes(ctx);
   if (existsSync(c.webDir)) {
     await app.register(staticFiles, { root: c.webDir, prefix: "/" });
     app.setNotFoundHandler(async (req, reply) => {

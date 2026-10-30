@@ -84,3 +84,28 @@ CREATE TABLE IF NOT EXISTS mail_outbox (
  sent_at timestamptz, created_at timestamptz NOT NULL DEFAULT now()
 );
 INSERT INTO schema_versions(version) VALUES(1) ON CONFLICT DO NOTHING;
+
+-- Version 2: platform administration, organization onboarding and broadcasts.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_system_admin boolean NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS can_create_org boolean NOT NULL DEFAULT true;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password boolean NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS disabled_at timestamptz;
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS join_code text;
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS allow_join_requests boolean NOT NULL DEFAULT true;
+UPDATE organizations SET join_code='CF-'||upper(substr(replace(id::text,'-',''),1,16)) WHERE join_code IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS organization_join_code ON organizations(join_code);
+ALTER TABLE channels ADD COLUMN IF NOT EXISTS system_key text;
+CREATE UNIQUE INDEX IF NOT EXISTS channel_system_key ON channels(org_id,system_key) WHERE system_key IS NOT NULL;
+CREATE TABLE IF NOT EXISTS platform_settings (id integer PRIMARY KEY CHECK(id=1), registration_open boolean NOT NULL DEFAULT true, default_org_creation boolean NOT NULL DEFAULT true);
+CREATE TABLE IF NOT EXISTS platform_audit_events (id uuid PRIMARY KEY, actor_id uuid REFERENCES users(id) ON DELETE SET NULL, action text NOT NULL, detail jsonb NOT NULL DEFAULT '{}', created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS join_requests (
+ id uuid PRIMARY KEY, org_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+ user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ status text NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),
+ created_at timestamptz NOT NULL DEFAULT now(), reviewed_at timestamptz,
+ reviewed_by uuid REFERENCES users(id) ON DELETE SET NULL, UNIQUE(org_id,user_id)
+);
+CREATE TABLE IF NOT EXISTS broadcasts (id uuid PRIMARY KEY, sender_id uuid NOT NULL REFERENCES users(id), body text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS broadcast_organizations (broadcast_id uuid NOT NULL REFERENCES broadcasts(id) ON DELETE CASCADE, org_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE, PRIMARY KEY(broadcast_id,org_id));
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS broadcast_id uuid REFERENCES broadcasts(id) ON DELETE SET NULL;
+INSERT INTO schema_versions(version) VALUES(2) ON CONFLICT DO NOTHING;

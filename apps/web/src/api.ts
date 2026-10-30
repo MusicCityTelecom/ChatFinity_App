@@ -1,4 +1,7 @@
 export interface User {
+  is_system_admin?: boolean;
+  can_create_org?: boolean;
+  must_change_password?: boolean;
   id: string;
   email: string;
   name: string;
@@ -6,6 +9,7 @@ export interface User {
   status: string;
 }
 export interface Org {
+  join_code?: string;
   id: string;
   name: string;
   role: "owner" | "admin" | "member";
@@ -39,6 +43,7 @@ export interface Attachment {
   mime: string;
 }
 export interface Message {
+  broadcast_id?: string | null;
   id: string;
   channel_id: string;
   sender_id: string;

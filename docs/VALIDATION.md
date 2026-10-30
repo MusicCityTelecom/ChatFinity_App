@@ -1,23 +1,22 @@
 # Validation status — 0.1.0 alpha
 
-This file records actual local checks and distinguishes them from deployment verification. It is not a claim that a live service is already running.
+## Passing checks
 
-## Local checks
+- TypeScript checks and production builds for the server and web client; desktop builder schema and setup CSP validation.
+- Nineteen API checks using Fastify injection and PGlite PostgreSQL: auth/verification, sessions, origin/CSRF, organization boundaries, invitations, private discovery, messages/idempotency, replies/reactions/saves/search, DMs, read markers, multipart uploads, meeting grants, owner delegation, removal, resets, invitation-only signup, system administration, multi-org assignments, ID signup approval, transactional broadcast audiences and mandatory temporary-password replacement.
+- Real Chromium checks cover chat/replies/drafts/search, two-user WebSocket delivery, organization invitation management, short-screen readability, mobile navigation and system administration with multi-org assignment/broadcasts.
+- A real local LiveKit 1.13.11 browser check joins two participants, publishes simulated camera/microphone and a synthetic shared screen, verifies received video frames, then ends the meeting for everyone. Physical devices and operating-system sharing permissions still require device testing.
+- Native desktop packages built successfully on GitHub Actions for Windows, macOS and Linux (run 41134600292). This is build verification, not an OS installation smoke test or signing/notarization verification.
+- Production dependency audit: zero known advisories at the time checked. This is not a full security audit.
 
-- TypeScript checks and production builds for the API and web client.
-- API tests using Fastify HTTP injection and PGlite (an embedded PostgreSQL engine), exercising signup/verification, sessions, origin/CSRF enforcement, independent organizations, email-bound invitations, discovery privacy, message retry deduplication, cross-channel replies, search, reactions/saves, direct conversations, read markers, real multipart uploads and protected downloads, owner delegation, membership removal, meeting grants and password-reset revocation.
-- Five passing real Chromium chat tests against a disposable running API for chat flows, two-user delivery, organization invitations, short-screen layout and narrow-screen navigation.
-- Desktop main/preload JavaScript syntax and setup-screen CSP hash verification.
+## Server2 verification
 
-The API permission tests use a media-room service double. A separate passing browser test runs two participants against a real local LiveKit v1.13.11 server, publishes simulated camera/microphone tracks and a synthetic shared screen, verifies that the second participant receives video frames, and ends the meeting for everyone. This does not validate physical devices, OS-native sharing permissions, public TURN or the server2 internet media path. No production email is sent by automated tests.
+The standalone application is deployed at https://chat.innaware.net using its own PostgreSQL, API and LiveKit containers. The existing Apache installation serves the new virtual host and automatically renewed Let's Encrypt certificate. Health checks, the real login page and bundled assets load through public HTTPS. SMTP2GO STARTTLS authentication now succeeds.
 
-The production dependency audit reported zero known vulnerabilities at the time of the local check. This is a point-in-time dependency check, not a security audit.
+Disposable production fixtures verified real PostgreSQL persistence, login, conversation replies, protected uploads/downloads, HTTPS WebSocket message delivery, authorized LiveKit admission through `/media`, and ending meetings. Test data and files were removed. Automated tests do not send real email to inboxes.
 
-## Still required before public rollout
+Public TCP 7881 became reachable after the user updated forwarding. A meeting between two actual outside networks, UDP/media forwarding and restrictive-network TURN/TLS behavior remain to be validated. Backup recovery, load/performance, monitoring and signed installer/device testing remain before a broad public rollout.
 
-- Deploy the built service with PostgreSQL on server2; verify actual DNS, certificates, existing Apache routing, WebSocket upgrades and trusted client-address forwarding.
-- Add the supplied SMTP2GO credentials privately, verify the From domain and test verification/invitation/reset delivery to real inboxes.
-- Deploy LiveKit and a TURN/TLS-compatible media network path; test actual meetings between different internet networks, cameras/microphones and screen sharing.
-- Build and smoke-test native installers on Windows, macOS and Linux, then sign/notarize before public distribution.
-- Test backup recovery, restart/reconnection, simultaneous sends/membership changes, storage limits, performance under expected concurrency and operational monitoring.
-- Review the initial-release limitations in ARCHITECTURE.md and adopt a data-retention/privacy policy before collecting public users.
+## Mobile
+
+The web layout supports phone browsers. Android and iOS native clients are planned in MOBILE.md and have not yet been implemented or published.

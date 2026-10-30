@@ -7,6 +7,9 @@ export interface User extends Row {
   name: string;
   verified_at: string | null;
   status: string;
+  is_system_admin?: boolean;
+  can_create_org?: boolean;
+  must_change_password?: boolean;
 }
 declare module "fastify" {
   interface FastifyRequest {

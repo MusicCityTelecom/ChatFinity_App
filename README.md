@@ -72,3 +72,5 @@ Use the **Desktop installers** GitHub Actions workflow, manually or with a `v*` 
 - [Desktop builds and distribution](docs/DESKTOP.md)
 - [Validation status](docs/VALIDATION.md)
 - [Contribution workflow](CONTRIBUTING.md)
+
+System administration, multi-organization access, Organization ID signup requests, password controls and broadcasts are described in [ADMINISTRATION.md](docs/ADMINISTRATION.md). Android and iPhone applications are planned in [MOBILE.md](docs/MOBILE.md); the responsive web application already works in mobile browsers.

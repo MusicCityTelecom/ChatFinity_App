@@ -67,3 +67,20 @@ Upload first, then include the resulting attachment IDs when sending. Unclaimed 
 Connect to `/api/events`. Server events include `connected`, `message.created`, `message.updated`, `typing`, `conversation.read`, `channel.created`, `channel.updated`, `organization.updated`, `meeting.started`, and `meeting.ended`. Scoped events carry `orgId` and `channelId`. Message events carry identifiers; clients fetch authorized persisted state through HTTP. They are not a second storage path.
 
 Clients may send `{type:"typing",channelId:"UUID"}` (throttled) and `{type:"activity",active:true}` (periodic heartbeat). They cannot select recipients or assert identity. Reconnect with bounded backoff and refetch conversations after connection loss; events are not a durable replay log.
+
+## System administration and onboarding
+
+- `GET /api/admin/{overview,users,orgs,audit,join-requests}` requires a verified system administrator.
+- `POST /api/admin/users`: create an account, queue a password setup email and optionally assign `memberships: [{orgId,role}]`.
+- `PATCH /api/admin/users/:id`: name, `canCreateOrg`, `systemAdmin`, `disabled`, `verified`. The last enabled verified system administrator is protected.
+- `POST /api/admin/users/:id/password-reset`: queue a reset link, or pass `temporaryPassword` to require a password change at next sign-in. Sessions are revoked.
+- `POST /api/admin/users/:id/memberships`: add/update one or more organization roles; `DELETE /api/admin/users/:id/memberships/:orgId` revokes access.
+- `PATCH /api/admin/orgs/:id`: name and/or `allowJoinRequests`. `POST /api/admin/orgs/:id/join` records explicit administrative owner membership.
+- `PATCH /api/admin/settings`: `registrationOpen`, `defaultOrgCreation`.
+- Signup accepts optional `organizationId` (shareable join code or organization UUID); it creates a pending request, never membership.
+- `GET /api/me/join-requests`; `POST /api/join-requests` with `organizationId` requests access for an existing verified account.
+- Organization owners/admins use `GET /api/orgs/:orgId/join-requests` and `POST /api/orgs/:orgId/join-requests/:id` with `approve` and optional `role`. System administrators use `POST /api/admin/join-requests/:id`.
+- `POST /api/auth/change-password`: `currentPassword`, `password` (12+ characters). Other sessions are revoked.
+- `POST /api/broadcasts`: `organizationIds` (1–20), `body`. Members may target their organizations; system administrators may target all. All audiences are authorized atomically before delivery.
+
+These endpoints use the existing session, email verification, Origin and CSRF protections. See ADMINISTRATION.md for workflows and limitations.

@@ -42,6 +42,7 @@ for (const [id, email, name, status] of [
     "INSERT INTO users(id,email,name,password_hash,verified_at,status) VALUES($1,$2,$3,$4,now(),$5)",
     [id, email, name, encoded, status],
   );
+await db.q("UPDATE users SET is_system_admin=true WHERE id=$1", [alex]);
 await db.q(
   "INSERT INTO organizations(id,name,created_by) VALUES($1,$2,$3),($4,$5,$3)",
   [org, "InnaWare", alex, community, "Weekend Collective"],

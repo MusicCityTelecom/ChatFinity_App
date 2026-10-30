@@ -628,4 +628,349 @@ test("ChatFinity accounts, organizations and conversation boundaries", async (t)
       c.registration = true;
     },
   );
+  await t.test(
+    "System administrators control accounts while organization owners cannot access system controls",
+    async () => {
+      await request("/admin/users", "GET", undefined, alice, 403);
+      await db.q("UPDATE users SET is_system_admin=true WHERE id=$1", [
+        alice.id,
+      ]);
+      const overview = (
+        await request("/admin/overview", "GET", undefined, alice)
+      ).json();
+      assert.ok(overview.counts.users >= 3);
+      const profile = (await request("/me", "GET", undefined, alice)).json()
+        .user;
+      assert.equal(profile.is_system_admin, true);
+      await request(
+        `/admin/users/${alice.id}`,
+        "PATCH",
+        { systemAdmin: false },
+        alice,
+        409,
+      );
+      await request(
+        `/admin/users/${alice.id}`,
+        "PATCH",
+        { disabled: true },
+        alice,
+        409,
+      );
+      await request(
+        `/admin/users/${alice.id}`,
+        "PATCH",
+        { verified: false },
+        alice,
+        409,
+      );
+      const created = (
+        await request(
+          "/admin/users",
+          "POST",
+          {
+            email: "managed@example.test",
+            name: "Managed Account",
+            canCreateOrg: false,
+            memberships: [
+              { orgId: orgA, role: "member" },
+              { orgId: orgB, role: "admin" },
+            ],
+          },
+          alice,
+        )
+      ).json();
+      const [row] = await db.q("SELECT * FROM users WHERE id=$1", [created.id]);
+      assert.equal(row.can_create_org, false);
+      assert.equal(row.must_change_password, true);
+      assert.ok(row.verified_at);
+      assert.equal(
+        (await db.q("SELECT * FROM memberships WHERE user_id=$1", [created.id]))
+          .length,
+        2,
+      );
+      const [mail] = await db.q(
+        "SELECT payload FROM mail_outbox WHERE payload->>'to'='managed@example.test'",
+      );
+      const token = mail.payload.text.match(/reset=([A-Za-z0-9_-]+)/)[1];
+      await request("/auth/reset", "POST", { token, password });
+      const login = await request("/auth/login", "POST", {
+        email: row.email,
+        password,
+      });
+      const managed = {
+        id: created.id,
+        email: row.email,
+        csrf: login.json().csrf,
+        cookie:
+          "cf_session=" +
+          login.cookies.find((c) => c.name === "cf_session")!.value,
+      };
+      await request(
+        "/orgs",
+        "POST",
+        { name: "Unauthorized new organization" },
+        managed,
+        403,
+      );
+      await request(
+        `/admin/users/${managed.id}`,
+        "PATCH",
+        { canCreateOrg: true },
+        alice,
+      );
+      await request("/orgs", "POST", { name: "Delegated founder" }, managed);
+      await request(
+        `/admin/users/${managed.id}`,
+        "PATCH",
+        { disabled: true },
+        alice,
+      );
+      await request("/me", "GET", undefined, managed, 401);
+      await request(
+        "/auth/login",
+        "POST",
+        { email: row.email, password },
+        undefined,
+        403,
+      );
+      await request("/admin/audit", "GET", undefined, alice);
+    },
+  );
+  await t.test(
+    "Organization ID signup requires verification and approval and never grants access from the ID alone",
+    async () => {
+      const [org] = await db.q(
+        "SELECT join_code FROM organizations WHERE id=$1",
+        [orgA],
+      );
+      assert.match(org.join_code, /^CF-/);
+      await request("/auth/signup", "POST", {
+        email: "joiner@example.test",
+        name: "New Participant",
+        password,
+        organizationId: org.join_code.toLowerCase(),
+      });
+      const [u] = await db.q(
+        "SELECT id,can_create_org FROM users WHERE email='joiner@example.test'",
+      );
+      assert.equal(u.can_create_org, false);
+      let pending = (
+        await request(`/orgs/${orgA}/join-requests`, "GET", undefined, alice)
+      ).json().requests;
+      assert.ok(!pending.some((j: any) => j.user_id === u.id));
+      const [mail] = await db.q(
+        "SELECT payload FROM mail_outbox WHERE payload->>'to'='joiner@example.test'",
+      );
+      await request("/auth/verify", "POST", {
+        token: mail.payload.text.match(/verify=([A-Za-z0-9_-]+)/)[1],
+      });
+      const login = await request("/auth/login", "POST", {
+          email: "joiner@example.test",
+          password,
+        }),
+        joiner = {
+          id: u.id,
+          email: "joiner@example.test",
+          csrf: login.json().csrf,
+          cookie:
+            "cf_session=" +
+            login.cookies.find((c) => c.name === "cf_session")!.value,
+        };
+      assert.equal(
+        (await request("/orgs", "GET", undefined, joiner)).json().organizations
+          .length,
+        0,
+      );
+      await request(
+        `/channels/${channelA}/messages`,
+        "GET",
+        undefined,
+        joiner,
+        404,
+      );
+      pending = (
+        await request(`/orgs/${orgA}/join-requests`, "GET", undefined, alice)
+      ).json().requests;
+      const j = pending.find((j: any) => j.user_id === u.id);
+      assert.ok(j);
+      await request(
+        `/orgs/${orgA}/join-requests/${j.id}`,
+        "POST",
+        { approve: true },
+        joiner,
+        403,
+      );
+      await request(
+        `/orgs/${orgA}/join-requests/${j.id}`,
+        "POST",
+        { approve: true },
+        alice,
+      );
+      assert.equal(
+        (await request("/orgs", "GET", undefined, joiner)).json().organizations
+          .length,
+        1,
+      );
+      await request(`/channels/${channelA}/messages`, "GET", undefined, joiner);
+      await request("/join-requests", "POST", { organizationId: orgB }, joiner);
+      const own = (
+        await request("/me/join-requests", "GET", undefined, joiner)
+      ).json().requests;
+      const second = own.find((r: any) => r.org_id === orgB);
+      await request(
+        `/admin/join-requests/${second.id}`,
+        "POST",
+        { approve: true },
+        alice,
+      );
+      assert.equal(
+        (await request("/orgs", "GET", undefined, joiner)).json().organizations
+          .length,
+        2,
+      );
+    },
+  );
+  await t.test(
+    "Broadcasts reach every selected organization, preserve boundaries and roll back unauthorized audiences",
+    async () => {
+      const sent = (
+        await request(
+          "/broadcasts",
+          "POST",
+          {
+            organizationIds: [orgA, orgB],
+            body: "An organization-wide announcement.",
+          },
+          alice,
+        )
+      ).json();
+      assert.equal(sent.organizationCount, 2);
+      const messages = await db.q(
+        "SELECT * FROM messages WHERE broadcast_id=$1",
+        [sent.id],
+      );
+      assert.equal(messages.length, 2);
+      assert.notEqual(messages[0].channel_id, messages[1].channel_id);
+      for (const m of messages) {
+        const [counts] = await db.q(
+          "SELECT (SELECT count(*)::int FROM memberships WHERE org_id=$1) AS people,(SELECT count(*)::int FROM channel_members WHERE channel_id=$2) AS audience",
+          [m.org_id, m.channel_id],
+        );
+        assert.equal(counts.people, counts.audience);
+      }
+      const outsider = await account(
+        "broadcast-outsider@example.test",
+        "Broadcast Outsider",
+      );
+      const other = (
+        await request("/orgs", "POST", { name: "Other Organization" }, outsider)
+      ).json().id;
+      const before = (
+        await db.q("SELECT count(*)::int AS n FROM broadcasts")
+      )[0].n;
+      await request(
+        "/broadcasts",
+        "POST",
+        {
+          organizationIds: [other, orgA],
+          body: "Must not be partially delivered",
+        },
+        outsider,
+        403,
+      );
+      assert.equal(
+        (await db.q("SELECT count(*)::int AS n FROM broadcasts"))[0].n,
+        before,
+      );
+      await request(
+        `/channels/${messages[0].channel_id}/messages`,
+        "GET",
+        undefined,
+        outsider,
+        404,
+      );
+      await request(
+        "/broadcasts",
+        "POST",
+        {
+          organizationIds: [other],
+          body: "A member can broadcast to their organization",
+        },
+        outsider,
+      );
+    },
+  );
+  await t.test(
+    "Administrator temporary passwords require replacement and self-service change revokes other sessions",
+    async () => {
+      const target = await account(
+        "temporary@example.test",
+        "Temporary Password",
+      );
+      await request(
+        `/admin/users/${target.id}/password-reset`,
+        "POST",
+        { temporaryPassword: "Temporary-Password-2026!" },
+        alice,
+      );
+      await request("/me", "GET", undefined, target, 401);
+      const login = await request("/auth/login", "POST", {
+        email: target.email,
+        password: "Temporary-Password-2026!",
+      });
+      assert.equal(login.json().user.must_change_password, true);
+      const session = {
+        ...target,
+        csrf: login.json().csrf,
+        cookie:
+          "cf_session=" +
+          login.cookies.find((c) => c.name === "cf_session")!.value,
+      };
+      await request("/orgs", "GET", undefined, session, 403);
+      await request(
+        "/orgs",
+        "POST",
+        { name: "Blocked until changed" },
+        session,
+        403,
+      );
+      const otherLogin = await request("/auth/login", "POST", {
+          email: target.email,
+          password: "Temporary-Password-2026!",
+        }),
+        other = {
+          ...target,
+          csrf: otherLogin.json().csrf,
+          cookie:
+            "cf_session=" +
+            otherLogin.cookies.find((c) => c.name === "cf_session")!.value,
+        };
+      await request(
+        "/auth/change-password",
+        "POST",
+        {
+          currentPassword: "Wrong password",
+          password: "Changed-Password-2026!",
+        },
+        session,
+        400,
+      );
+      await request(
+        "/auth/change-password",
+        "POST",
+        {
+          currentPassword: "Temporary-Password-2026!",
+          password: "Changed-Password-2026!",
+        },
+        session,
+      );
+      assert.equal(
+        (await request("/me", "GET", undefined, session)).json().user
+          .must_change_password,
+        false,
+      );
+      await request("/orgs", "GET", undefined, session);
+      await request("/me", "GET", undefined, other, 401);
+    },
+  );
 });

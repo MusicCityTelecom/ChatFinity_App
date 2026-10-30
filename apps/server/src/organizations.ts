@@ -14,6 +14,11 @@ export function orgRoutes({ app, db, c, events }: Context) {
     ),
   }));
   app.post("/api/orgs", async (req) => {
+    if (!req.user!.is_system_admin && !req.user!.can_create_org)
+      fail(
+        403,
+        "Your account needs permission to create organizations. Contact a system administrator.",
+      );
     const { name } = z
         .object({ name: z.string().trim().min(2).max(80) })
         .parse(req.body),
@@ -28,8 +33,13 @@ export function orgRoutes({ app, db, c, events }: Context) {
       if (count.n >= 20)
         fail(409, "This account has reached its 20-organization limit.");
       await tx.q(
-        "INSERT INTO organizations(id,name,created_by) VALUES($1,$2,$3)",
-        [id, name, uid(req)],
+        "INSERT INTO organizations(id,name,created_by,join_code) VALUES($1,$2,$3,$4)",
+        [
+          id,
+          name,
+          uid(req),
+          "CF-" + id.replaceAll("-", "").slice(0, 16).toUpperCase(),
+        ],
       );
       await tx.q(
         "INSERT INTO memberships(org_id,user_id,role) VALUES($1,$2,'owner')",

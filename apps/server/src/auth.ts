@@ -8,6 +8,11 @@ import {
   passwordMatches,
   fail,
 } from "./security.js";
+import {
+  effectiveSettings,
+  findOrganization,
+  requestMembership,
+} from "./onboarding.js";
 import { enqueue } from "./mail.js";
 const email = z
   .string()
@@ -21,7 +26,7 @@ const authLimit = { rateLimit: { max: 10, timeWindow: "15 minutes" } };
 export function authRoutes({ app, db, c, events }: Context) {
   app.get("/api/config", async () => ({
     name: "ChatFinity",
-    registration: c.registration,
+    registration: (await effectiveSettings(db, c)).registration_open,
     meetings: !!(c.livekitUrl && c.livekitKey && c.livekitSecret),
   }));
   app.post("/api/auth/signup", { config: authLimit }, async (req) => {
@@ -31,9 +36,22 @@ export function authRoutes({ app, db, c, events }: Context) {
         password,
         name: z.string().trim().min(1).max(100),
         invite: z.string().min(20).max(100).optional(),
+        organizationId: z.string().trim().min(1).max(80).optional(),
       })
       .parse(req.body);
-    if (!c.registration) {
+    const settings = await effectiveSettings(db, c);
+    const requestedOrg = input.organizationId
+      ? await findOrganization(db, input.organizationId)
+      : null;
+    if (
+      input.organizationId &&
+      (!requestedOrg || !requestedOrg.allow_join_requests)
+    )
+      fail(
+        400,
+        "Organization ID unavailable. Check the ID with an organization administrator.",
+      );
+    if (!settings.registration_open) {
       const rows = input.invite
         ? await db.q(
             "SELECT id FROM invitations WHERE token_hash=$1 AND email=$2 AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at>now()",
@@ -51,10 +69,17 @@ export function authRoutes({ app, db, c, events }: Context) {
       encoded = await passwordHash(input.password);
     await db.tx(async (tx) => {
       const rows = await tx.q(
-        "INSERT INTO users(id,email,name,password_hash) VALUES($1,$2,$3,$4) ON CONFLICT(email) DO NOTHING RETURNING id",
-        [id, input.email, input.name, encoded],
+        "INSERT INTO users(id,email,name,password_hash,can_create_org) VALUES($1,$2,$3,$4,$5) ON CONFLICT(email) DO NOTHING RETURNING id",
+        [
+          id,
+          input.email,
+          input.name,
+          encoded,
+          !requestedOrg && settings.default_org_creation,
+        ],
       );
       if (rows.length) {
+        if (requestedOrg) await requestMembership(tx, id, requestedOrg.id);
         await tx.q(
           "INSERT INTO email_tokens(token_hash,user_id,purpose,expires_at) VALUES($1,$2,'verify',now()+interval '24 hours')",
           [hash(token), id],
@@ -82,6 +107,8 @@ export function authRoutes({ app, db, c, events }: Context) {
     const encoded = u?.password_hash || (await dummyHash);
     if (!(await passwordMatches(input.password, encoded)) || !u)
       fail(401, "Email or password is incorrect.");
+    if (u.disabled_at)
+      fail(403, "This account is disabled. Contact your system administrator.");
     const token = secret(),
       csrf = secret();
     await db.q(
@@ -102,6 +129,9 @@ export function authRoutes({ app, db, c, events }: Context) {
         name: u.name,
         verified_at: u.verified_at,
         status: u.status,
+        is_system_admin: u.is_system_admin,
+        can_create_org: u.can_create_org,
+        must_change_password: u.must_change_password,
       },
       csrf,
     };
@@ -167,16 +197,45 @@ export function authRoutes({ app, db, c, events }: Context) {
       );
       if (!t)
         fail(400, "This reset link has expired or has already been used.");
-      await tx.q("UPDATE users SET password_hash=$1 WHERE id=$2", [
-        encoded,
-        t.user_id,
-      ]);
+      await tx.q(
+        "UPDATE users SET password_hash=$1,must_change_password=false WHERE id=$2",
+        [encoded, t.user_id],
+      );
       await tx.q("DELETE FROM sessions WHERE user_id=$1", [t.user_id]);
       return t.user_id;
     });
     events.disconnectUser(id);
     return { ok: true };
   });
+
+  app.post("/api/auth/change-password", async (req) => {
+    const input = z
+      .object({ currentPassword: z.string().min(1).max(200), password })
+      .parse(req.body);
+    const [account] = await db.q(
+      "SELECT password_hash FROM users WHERE id=$1",
+      [req.user!.id],
+    );
+    if (
+      !account ||
+      !(await passwordMatches(input.currentPassword, account.password_hash))
+    )
+      fail(400, "Your current password is incorrect.");
+    const encoded = await passwordHash(input.password);
+    await db.tx(async (tx) => {
+      await tx.q(
+        "UPDATE users SET password_hash=$1,must_change_password=false WHERE id=$2",
+        [encoded, req.user!.id],
+      );
+      await tx.q("DELETE FROM sessions WHERE user_id=$1 AND token_hash<>$2", [
+        req.user!.id,
+        req.sessionHash,
+      ]);
+    });
+    events.disconnectUser(req.user!.id);
+    return { ok: true };
+  });
+
   app.get("/api/me", async (req) => ({ user: req.user, csrf: req.csrf }));
   app.patch("/api/me", async (req) => {
     const input = z
@@ -186,7 +245,7 @@ export function authRoutes({ app, db, c, events }: Context) {
       })
       .parse(req.body);
     const [u] = await db.q(
-      "UPDATE users SET name=coalesce($1,name),status=coalesce($2,status) WHERE id=$3 RETURNING id,email,name,status,verified_at",
+      "UPDATE users SET name=coalesce($1,name),status=coalesce($2,status) WHERE id=$3 RETURNING id,email,name,status,verified_at,is_system_admin,can_create_org,must_change_password",
       [input.name ?? null, input.status ?? null, req.user!.id],
     );
     return { user: u };

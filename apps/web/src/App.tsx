@@ -52,6 +52,15 @@ import {
   type Meeting,
 } from "./api";
 import { Auth } from "./Auth";
+import { SystemAdmin } from "./SystemAdmin";
+import {
+  PasswordForm,
+  RequiredPasswordChange,
+  JoinOrganization,
+  PendingAccess,
+  BroadcastComposer,
+  OrganizationAccess,
+} from "./WorkspaceTools";
 import type { MeetingAccess } from "./Meeting";
 const MeetingRoom = lazy(() =>
   import("./Meeting").then((m) => ({ default: m.MeetingRoom })),
@@ -741,6 +750,14 @@ export default function App() {
         </div>
       </div>
     );
+  if (user.must_change_password)
+    return (
+      <RequiredPasswordChange
+        onChanged={async () => {
+          setUser((await api<{ user: User }>("/me")).user);
+        }}
+      />
+    );
   if (!user.verified_at)
     return (
       <div className="center-page">
@@ -807,14 +824,36 @@ export default function App() {
             {initials(o.name)}
           </button>
         ))}
-        <button
-          className="org-icon add-org"
-          title="Create organization"
-          aria-label="Create organization"
-          onClick={() => setModal("org")}
+        {(user.can_create_org || user.is_system_admin) && (
+          <button
+            className="org-icon add-org"
+            title="Create organization"
+            aria-label="Create organization"
+            onClick={() => setModal("org")}
+          >
+            <Plus />
+          </button>
+        )}
+        <IconButton
+          label="Join an organization"
+          onClick={() => setModal("join-org")}
         >
-          <Plus />
-        </button>
+          <Users size={19} />
+        </IconButton>
+        <IconButton
+          label="Send organization broadcast"
+          onClick={() => setModal("broadcast")}
+        >
+          <Send size={19} />
+        </IconButton>
+        {user.is_system_admin && (
+          <IconButton
+            label="System administration"
+            onClick={() => setModal("system-admin")}
+          >
+            <Shield size={20} />
+          </IconButton>
+        )}
         <div className="rail-spacer" />
         <IconButton
           label="Your preferences"
@@ -1053,20 +1092,14 @@ export default function App() {
           </div>
         )}
         {!org ? (
-          <div className="empty-workspace">
-            <span className="empty-symbol">
-              <MessageCircle size={40} />
-            </span>
-            <span className="eyebrow">YOUR PEOPLE. YOUR POSSIBILITY.</span>
-            <h1>Start something together.</h1>
-            <p>
-              Create an organization for your team, business, friends or
-              community. Invite a few people. See where the conversation goes.
-            </p>
-            <button className="primary" onClick={() => setModal("org")}>
-              <Plus size={18} /> Create your first organization
-            </button>
-          </div>
+          <PendingAccess
+            canCreate={!!(user.can_create_org || user.is_system_admin)}
+            onCreate={() => setModal("org")}
+            onJoin={() => setModal("join-org")}
+            onRefresh={async () => {
+              await loadOrgs();
+            }}
+          />
         ) : !channel ? (
           <div className="empty-workspace">
             <Hash size={40} />
@@ -1237,6 +1270,11 @@ export default function App() {
                         </form>
                       ) : (
                         <>
+                          {m.broadcast_id && (
+                            <span className="broadcast-badge">
+                              Organization broadcast
+                            </span>
+                          )}
                           <p className="message-text">{m.body}</p>
                           {m.attachments.map((f) => (
                             <a
@@ -1743,6 +1781,53 @@ export default function App() {
           </div>
         </Modal>
       )}
+      {modal === "system-admin" && user.is_system_admin && (
+        <SystemAdmin
+          me={user}
+          onClose={() => setModal("")}
+          onProfileChanged={async () => {
+            setUser((await api<{ user: User }>("/me")).user);
+          }}
+          onOpenOrg={async (id) => {
+            await loadOrgs();
+            setOrgId(id);
+          }}
+        />
+      )}
+      {modal === "join-org" && (
+        <Modal title="Join an organization" onClose={() => setModal("")}>
+          <JoinOrganization />
+        </Modal>
+      )}
+      {modal === "broadcast" && (
+        <Modal
+          title="Send an organization broadcast"
+          onClose={() => setModal("")}
+        >
+          <BroadcastComposer
+            organizations={orgs}
+            onSent={(r) => {
+              setModal("");
+              setNotice(
+                `Broadcast delivered to ${r.organizationCount} organization(s).`,
+              );
+            }}
+          />
+        </Modal>
+      )}
+      {modal === "change-password" && (
+        <Modal title="Change your password" onClose={() => setModal("")}>
+          <PasswordForm
+            onChanged={async () => {
+              setUser((await api<{ user: User }>("/me")).user);
+              setModal("");
+              setNotice(
+                "Password updated. Your other sessions were signed out.",
+              );
+            }}
+          />
+        </Modal>
+      )}
       {modal === "preferences" && (
         <Modal title="Make yourself at home" onClose={() => setModal("")}>
           <form
@@ -1818,6 +1903,13 @@ export default function App() {
               drafts are saved in this browser.
             </p>
             <button className="primary">Save preferences</button>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => setModal("change-password")}
+            >
+              Change password
+            </button>
           </form>
           <div className="modal-divider" />
           <button
@@ -2011,6 +2103,7 @@ function OrganizationManager({
   };
   return (
     <Modal title={org.name} onClose={onClose}>
+      <OrganizationAccess org={org} onError={onError} onUpdated={refresh} />
       <div className="modal-tabs">
         <button
           className={tab === "people" ? "active" : ""}

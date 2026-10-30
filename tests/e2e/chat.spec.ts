@@ -232,3 +232,60 @@ test("actual LiveKit meeting joins two participants, shares a synthetic screen a
   await a.close();
   await b.close();
 });
+
+test("system administration, multi-org assignment and organization broadcasts work on a short screen", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1366, height: 558 });
+  await signIn(page);
+  await page
+    .getByRole("button", { name: "System administration", exact: true })
+    .click();
+  const admin = page.locator("dialog.system-admin");
+  await expect(
+    admin.getByRole("heading", { name: "Everything in one place." }),
+  ).toBeVisible();
+  await admin.getByRole("button", { name: "Users", exact: true }).click();
+  await expect(
+    admin.getByText("People and permissions", { exact: true }),
+  ).toBeVisible();
+  await admin.getByRole("button", { name: "Add user", exact: true }).click();
+  await admin.getByLabel("Name", { exact: true }).fill("Browser Managed User");
+  await admin
+    .getByLabel("Email", { exact: true })
+    .fill("browser-managed@chatfinity.test");
+  await admin.getByLabel("InnaWare", { exact: true }).check();
+  await admin.getByLabel("Weekend Collective", { exact: true }).check();
+  await admin
+    .getByRole("button", { name: "Create and send setup link" })
+    .click();
+  await expect(admin.getByRole("status")).toContainText("User created");
+  await expect(
+    admin.locator("tr").filter({ hasText: "browser-managed@chatfinity.test" }),
+  ).toContainText("InnaWare, Weekend Collective");
+  await admin.getByRole("button", { name: "Broadcast", exact: true }).click();
+  await admin.getByLabel("InnaWare", { exact: true }).check();
+  await admin.getByLabel("Weekend Collective", { exact: true }).check();
+  await admin
+    .getByLabel("Announcement", { exact: true })
+    .fill("Browser broadcast to our two organizations");
+  await admin
+    .getByRole("button", { name: "Send broadcast", exact: true })
+    .click();
+  await expect(admin.getByRole("status")).toContainText("2 organization");
+  await page.screenshot({ path: "test-results/chatfinity-system-admin.png" });
+  await admin
+    .getByRole("button", { name: "Close system administration" })
+    .click();
+  await page
+    .getByRole("button", { name: "announcements", exact: true })
+    .click();
+  await expect(
+    page.getByText("Browser broadcast to our two organizations", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Organization broadcast", { exact: true }),
+  ).toBeVisible();
+});

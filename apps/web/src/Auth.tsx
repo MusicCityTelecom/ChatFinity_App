@@ -41,6 +41,7 @@ export function Auth({
       if (mode === "signup") {
         await api("/auth/signup", "POST", {
           ...data,
+          organizationId: data.organizationId || undefined,
           ...(invite ? { invite } : {}),
         });
         setNotice(
@@ -179,6 +180,20 @@ export function Auth({
                       : "At least 12 characters"
                   }
                 />
+              </label>
+            )}
+            {mode === "signup" && !invite && (
+              <label>
+                Organization ID (optional)
+                <input
+                  name="organizationId"
+                  maxLength={80}
+                  placeholder="CF-…"
+                />
+                <small className="muted">
+                  Have an ID? Enter it to request access after email
+                  verification. Leave blank to start your own organization.
+                </small>
               </label>
             )}
             {error && (
