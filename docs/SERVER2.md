@@ -19,14 +19,14 @@ Edit `.env.production` on server2. Set SMTP2GO credentials and a verified sendin
 ```dotenv
 PUBLIC_URL=https://chat.innaware.net
 SMTP_HOST=mail.smtp2go.com
-SMTP_PORT=587
+SMTP_PORT=2525
 SMTP_SECURE=false
 SMTP_USER=YOUR_SMTP2GO_SMTP_USERNAME
 SMTP_PASSWORD=YOUR_SMTP2GO_SMTP_PASSWORD
 MAIL_FROM=ChatFinity <hello@innaware.net>
 ```
 
-`SMTP_SECURE=false` on port 587 means STARTTLS, not unencrypted delivery: the production worker requires TLS. Port 465 uses `SMTP_SECURE=true`. Use the SMTP username/password, not an API key. SMTP2GO documents the host and supported ports in its [setup instructions](https://www.smtp2go.com/setup/). Choose a From address/domain verified in your SMTP2GO account. Quote any dotenv value that contains a literal `#` or leading/trailing spaces.
+`SMTP_SECURE=false` on port 2525 means STARTTLS, not unencrypted delivery: the production worker requires TLS. Port 465 uses `SMTP_SECURE=true`. Use the SMTP username/password, not an API key. SMTP2GO documents the host and supported ports in its [setup instructions](https://www.smtp2go.com/setup/). Choose a From address/domain verified in your SMTP2GO account. Quote any dotenv value that contains a literal `#` or leading/trailing spaces.
 
 Set `ALLOW_REGISTRATION=false` for invitation-only signup. Bootstrap the initial verified owner while registration is enabled, then disable it and recreate the API container. Owners can invite others; a valid email-bound invitation allows signup even when public registration is disabled.
 

@@ -16,9 +16,10 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test -w @chatfinity/server",
     "test:e2e": "playwright test",
-    "check": "npm run typecheck && npm test && npm run build",
+    "check": "npm run typecheck && npm run check:desktop && npm test && npm run build",
     "desktop": "npm run start -w @chatfinity/desktop",
-    "desktop:pack": "npm run pack -w @chatfinity/desktop"
+    "desktop:pack": "npm run pack -w @chatfinity/desktop",
+    "check:desktop": "node scripts/check-desktop.cjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
