@@ -29,9 +29,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "24", cache: npm }
       - run: npm ci --no-audit --no-fund
-      - name: Build installer
-        working-directory: apps/desktop
-        run: npx electron-builder ${{ matrix.target }} --publish never
+      - name: Configure signing only when credentials are present
+        shell: bash
         env:
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
@@ -40,6 +39,17 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          for key in CSC_LINK CSC_KEY_PASSWORD WIN_CSC_LINK WIN_CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            value="${!key}"
+            if [[ -n "$value" ]]; then
+              delimiter="CHATFINITY_SECRET_${RANDOM}_${RANDOM}"
+              printf '%s<<%s\n%s\n%s\n' "$key" "$delimiter" "$value" "$delimiter" >> "$GITHUB_ENV"
+            fi
+          done
+      - name: Build installer
+        working-directory: apps/desktop
+        run: npx electron-builder ${{ matrix.target }} --publish never
       - uses: actions/upload-artifact@v4
         with:
           name: ChatFinity-${{ matrix.name }}

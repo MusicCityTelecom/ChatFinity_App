@@ -60,9 +60,12 @@
       ],
       "category": "Network",
       "maintainer": "MusicCityTelecom",
-      "icon": "assets/icon.png"
+      "icon": "assets/icon.png",
+      "desktopName": "chatfinity.desktop",
+      "syncDesktopName": true
     },
     "publish": null,
-    "electronVersion": "45.2.0"
+    "electronVersion": "45.2.0",
+    "executableName": "chatfinity"
   }
 }
