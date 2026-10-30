@@ -7,11 +7,18 @@ COPY apps/web/package.json apps/web/package.json
 COPY apps/desktop/package.json apps/desktop/package.json
 RUN npm ci --no-audit --no-fund
 COPY . .
-RUN npm run build && npm prune --omit=dev --ignore-scripts --no-audit --no-fund --offline
+RUN npm run build
+FROM node:24-bookworm-slim AS production-dependencies
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY apps/server/package.json apps/server/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY apps/desktop/package.json apps/desktop/package.json
+RUN npm ci --omit=dev --workspace=@chatfinity/server --ignore-scripts --no-audit --no-fund
 FROM node:24-bookworm-slim
 ENV NODE_ENV=production PORT=3001 WEB_DIR=/app/apps/web/dist UPLOAD_DIR=/data/uploads
 WORKDIR /app
-COPY --from=build --chown=node:node /app/node_modules ./node_modules
+COPY --from=production-dependencies --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/package.json ./package.json
 COPY --from=build --chown=node:node /app/apps/server/package.json ./apps/server/package.json
 COPY --from=build --chown=node:node /app/apps/server/dist ./apps/server/dist
