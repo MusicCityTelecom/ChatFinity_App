@@ -94,7 +94,7 @@ jobs:
           path: |
             apps/mobile/build/*.png
             apps/mobile/build/*.log
-            ~/.maestro/tests/
+            apps/mobile/build/ui/
           retention-days: 14
   ios:
     needs: artifacts
@@ -148,5 +148,5 @@ jobs:
           path: |
             apps/mobile/build/*.png
             apps/mobile/build/*.log
-            ~/.maestro/tests/
+            apps/mobile/build/ui/
           retention-days: 14

@@ -16,6 +16,7 @@ appId: net.innaware.chatfinity.preview
     element: "Organization ID.*optional.*"
     direction: DOWN
 - assertVisible: "Organization ID.*optional.*"
+- takeScreenshot: ChatFinity-signup
 - scrollUntilVisible:
     element: "Back to sign in"
     direction: DOWN
@@ -24,6 +25,7 @@ appId: net.innaware.chatfinity.preview
     element: "Forgot your password.*"
     direction: DOWN
 - tapOn: "Forgot your password.*"
-- assertVisible: "Send reset link"
+- assertVisible: "Send reset link.*"
+- takeScreenshot: ChatFinity-recovery
 - tapOn: "Back to sign in"
 - assertVisible: "Password"
