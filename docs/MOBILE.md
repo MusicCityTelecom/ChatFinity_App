@@ -42,13 +42,29 @@ The Android preview APK embeds its JavaScript and uses a development signing key
 
 `eas.json` includes development, preview and production profiles for later signed builds. EAS is optional; the initial GitHub builds do not require an Expo account. Production builds use `CHATFINITY_BUILD_CHANNEL=production` for the canonical `net.innaware.chatfinity` app identifier. Keep all signing keys and credentials outside Git.
 
+## Built preview downloads
+
+- [Android APK archive](https://github.com/MusicCityTelecom/ChatFinity_App/actions/runs/41165453230/artifacts/13029238122) — unzip and install `ChatFinity-android-preview.apk` on an Android phone, allowing this specific installer when Android prompts. This is an internal development-signed preview.
+- [iPhone simulator archive](https://github.com/MusicCityTelecom/ChatFinity_App/actions/runs/41165811782/artifacts/13029049208) — an ad hoc signed Xcode simulator application for a Mac. This cannot install on an actual iPhone.
+
+GitHub artifact downloads require a GitHub login and expire after the workflow's retention period; rerun **Mobile preview builds** to generate replacements. Native phone installation and calls remain physical-device checks. The separate **Mobile device UI checks** workflow exercises sign-in, optional Organization ID signup and recovery navigation without creating accounts or sending emails. [Native UI checks](https://github.com/MusicCityTelecom/ChatFinity_App/actions/runs/41167244043) passed on a 320×640 Android emulator and an iPhone 17 Pro simulator running iOS 26.4, with the built-in LiveKit module loaded. These are navigation/rendering checks, not physical-device or signed-in native call tests.
+
+## Store enrollment
+
+Enroll the legal business that will own ChatFinity as an **Organization**:
+
+1. [Create a Google Play developer account](https://play.google.com/console/signup). Registration costs $25 once. Organization verification requires a D-U-N-S number and business/contact details; follow the console's current identity-verification steps.
+2. [Enroll in the Apple Developer Program](https://developer.apple.com/programs/enroll/). Membership costs $99/year. Use an Apple Account with two-factor authentication, your legal business details and D-U-N-S number. Apple also verifies authority to bind the organization and its public website/work contact details.
+
+[Look up or request a free D-U-N-S number](https://developer.apple.com/help/account/membership/D-U-N-S/) for the legal entity if it does not already have one. Account enrollment, identity verification and payments must be completed by the business owner. Do not put account passwords, payment details or signing keys in GitHub issues/source. Once the accounts are ready, configure signing privately, build the production identifiers and use internal Play testing/TestFlight before store submission. Store approval is separate from compiling the apps.
+
 ## Remaining setup and testing
 
 - Google Play/Apple Developer organization accounts and private production signing/provisioning are not configured. Google Play registration is $25 once; Apple Developer Program membership is $99/year as checked on 2026-10-31. Both require organization verification; check the current official requirements before enrolling.
 - Background push delivery is not enabled in this preview. Foreground live alerts work while connected. FCM/APNs credentials, device registration/revocation and delivery processing must be added before this can replace a full mobile messenger. The app says this explicitly in settings. iOS/Android background call behavior and call-system integration also need physical-device testing.
 - Email verification, invitations and email reset links currently open the existing web flow in the browser. Return to the native app to sign in/refresh access. Universal links/native handling can follow after verified app-domain associations and signing identities are available.
 - There is no persistent offline send queue; unsent drafts survive conversation switches while the app is running. They are not promised to survive process termination. Chat history is fetched from the server rather than retained as a local offline database.
-- Validate real cameras/microphones, Bluetooth, screen sharing, keyboard/font scaling, device rotation, network changes and battery behavior on actual phones before public rollout. The server's real outside-network media path and restrictive-network TURN/TLS behavior remain separate verification items.
+- Validate real cameras/microphones, Bluetooth, screen sharing, keyboard/font scaling, device rotation, network changes and battery behavior on actual phones before public rollout. Two browser participants have exchanged simulated media and shared-screen frames through the live public site. Physical phones on separate networks, background calls and restrictive-network TURN/TLS behavior still require device testing.
 - The complete system administrator and organization invitation/review consoles remain available through the web application; mobile exposes everyday account/chat/organization features.
 
 Official references: [Expo builds](https://docs.expo.dev/build/setup/), [LiveKit Expo integration](https://docs.livekit.io/transport/sdk-platforms/expo/), [SecureStore](https://docs.expo.dev/versions/latest/sdk/securestore/), [Google Play signup](https://support.google.com/googleplay/android-developer/answer/6112435?hl=en), [Apple enrollment](https://developer.apple.com/programs/enroll/).
