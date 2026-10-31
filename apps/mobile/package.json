@@ -1,0 +1,48 @@
+{
+  "name": "chatfinity-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start --dev-client",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "prebuild": "expo prebuild",
+    "typecheck": "tsc --noEmit",
+    "export:android": "expo export --platform android --output-dir .export/android",
+    "export:ios": "expo export --platform ios --output-dir .export/ios"
+  },
+  "dependencies": {
+    "@config-plugins/react-native-webrtc": "15.0.2",
+    "@expo/vector-icons": "^15.0.2",
+    "@livekit/react-native": "3.1.0",
+    "@livekit/react-native-expo-plugin": "1.1.0",
+    "@livekit/react-native-webrtc": "^150.1.0",
+    "expo": "~58.0.21",
+    "expo-audio": "~58.0.10",
+    "expo-crypto": "~58.0.7",
+    "expo-document-picker": "~58.0.4",
+    "expo-file-system": "~58.0.13",
+    "expo-haptics": "~58.0.7",
+    "expo-secure-store": "~58.0.2",
+    "expo-sharing": "~58.0.21",
+    "expo-status-bar": "~58.0.4",
+    "expo-system-ui": "~58.0.7",
+    "livekit-client": "^2.20.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-safe-area-context": "~5.10.1"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3",
+    "@types/react": "~19.3.0"
+  },
+  "overrides": {
+    "react-dom": "19.3.0",
+    "zod": "4.6.7",
+    "glob": "14.0.3",
+    "minimatch": "11.0.3",
+    "deepmerge": "4.1.1"
+  }
+}

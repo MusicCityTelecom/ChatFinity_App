@@ -84,3 +84,7 @@ Clients may send `{type:"typing",channelId:"UUID"}` (throttled) and `{type:"acti
 - `POST /api/broadcasts`: `organizationIds` (1–20), `body`. Members may target their organizations; system administrators may target all. All audiences are authorized atomically before delivery.
 
 These endpoints use the existing session, email verification, Origin and CSRF protections. See ADMINISTRATION.md for workflows and limitations.
+
+## Native mobile sessions
+
+`POST /api/auth/mobile-login` accepts the same email/password as web sign-in. It returns `{user, token, csrf, expiresAt}` and does not set a browser cookie. Send `Authorization: Bearer <token>`, `Origin: https://chat.innaware.net` and, for writes, `X-CSRF-Token: <csrf>` to the existing APIs. Send Authorization and Origin as native WebSocket headers to `/api/events`; never include credentials in URL query parameters. Store the session in the device's secure storage. The 30-day mobile session shares all account and organization restrictions and revocation behavior with the web service, with a distinct session type. `/api/auth/logout` revokes the current session.

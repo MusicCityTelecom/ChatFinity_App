@@ -1,0 +1,23 @@
+appId: net.innaware.chatfinity.preview
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Email address"
+    timeout: 30000
+- assertVisible: "Password"
+- takeScreenshot: ${SCREENSHOT_DIR}/ChatFinity-login
+- tapOn: "New here? Create an account"
+- assertVisible: "Your name"
+- scrollUntilVisible:
+    element: "Organization ID (optional)"
+    direction: DOWN
+- assertVisible: "Organization ID (optional)"
+- scrollUntilVisible:
+    element: "Back to sign in"
+    direction: DOWN
+- tapOn: "Back to sign in"
+- tapOn: "Forgot your password?"
+- assertVisible: "Send reset link"
+- tapOn: "Back to sign in"
+- assertVisible: "Password"

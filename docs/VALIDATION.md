@@ -3,7 +3,7 @@
 ## Passing checks
 
 - TypeScript checks and production builds for the server and web client; desktop builder schema and setup CSP validation.
-- Nineteen API checks using Fastify injection and PGlite PostgreSQL: auth/verification, sessions, origin/CSRF, organization boundaries, invitations, private discovery, messages/idempotency, replies/reactions/saves/search, DMs, read markers, multipart uploads, meeting grants, owner delegation, removal, resets, invitation-only signup, system administration, multi-org assignments, ID signup approval, transactional broadcast audiences and mandatory temporary-password replacement.
+- Twenty API checks using Fastify injection and PGlite PostgreSQL: auth/verification, sessions, origin/CSRF, organization boundaries, invitations, private discovery, messages/idempotency, replies/reactions/saves/search, DMs, read markers, multipart uploads, meeting grants, owner delegation, removal, resets, invitation-only signup, system administration, multi-org assignments, ID signup approval, transactional broadcast audiences and mandatory temporary-password replacement and isolated mobile bearer sessions.
 - Real Chromium checks cover chat/replies/drafts/search, two-user WebSocket delivery, organization invitation management, short-screen readability, mobile navigation and system administration with multi-org assignment/broadcasts.
 - A real local LiveKit 1.13.11 browser check joins two participants, publishes simulated camera/microphone and a synthetic shared screen, verifies received video frames, then ends the meeting for everyone. Physical devices and operating-system sharing permissions still require device testing.
 - Native desktop packages built successfully on GitHub Actions for Windows, macOS and Linux (run 41134600292). This is build verification, not an OS installation smoke test or signing/notarization verification.
@@ -19,4 +19,4 @@ Public TCP 7881 became reachable after the user updated forwarding. A meeting be
 
 ## Mobile
 
-The web layout supports phone browsers. Android and iOS native clients are planned in MOBILE.md and have not yet been implemented or published.
+The native application is implemented in apps/mobile. Local mobile TypeScript checks, native Android/iOS project generation and Android/iOS JavaScript bundle exports are validated separately from native installer compilation and physical-device tests. See MOBILE.md for the current build status and distribution limitations.

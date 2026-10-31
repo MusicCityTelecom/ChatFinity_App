@@ -109,3 +109,7 @@ CREATE TABLE IF NOT EXISTS broadcasts (id uuid PRIMARY KEY, sender_id uuid NOT N
 CREATE TABLE IF NOT EXISTS broadcast_organizations (broadcast_id uuid NOT NULL REFERENCES broadcasts(id) ON DELETE CASCADE, org_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE, PRIMARY KEY(broadcast_id,org_id));
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS broadcast_id uuid REFERENCES broadcasts(id) ON DELETE SET NULL;
 INSERT INTO schema_versions(version) VALUES(2) ON CONFLICT DO NOTHING;
+
+-- Version 3: distinct revocable native sessions, using the same users and memberships.
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS client_type text NOT NULL DEFAULT 'web' CHECK(client_type IN ('web','mobile'));
+INSERT INTO schema_versions(version) VALUES(3) ON CONFLICT DO NOTHING;

@@ -973,4 +973,97 @@ test("ChatFinity accounts, organizations and conversation boundaries", async (t)
       await request("/me", "GET", undefined, other, 401);
     },
   );
+  await t.test(
+    "Native sessions share accounts and organization permissions without weakening browser security",
+    async () => {
+      const phoneUser = await account(
+        "phone@example.test",
+        "Phone Participant",
+      );
+      const login = await request("/auth/mobile-login", "POST", {
+        email: phoneUser.email,
+        password,
+      });
+      const credentials = login.json();
+      assert.equal(credentials.user.id, phoneUser.id);
+      assert.match(credentials.token, /^[A-Za-z0-9_-]{43}$/);
+      assert.equal(login.cookies.length, 0);
+      assert.ok(new Date(credentials.expiresAt).getTime() > Date.now());
+      const native = async (
+        path: string,
+        method = "GET",
+        payload?: unknown,
+        expected = 200,
+        extra: Record<string, string> = {},
+      ) => {
+        const res = await app.inject({
+          url: "/api" + path,
+          method: method as any,
+          headers: {
+            origin: c.origin,
+            authorization: "Bearer " + credentials.token,
+            "x-csrf-token": credentials.csrf,
+            ...extra,
+          },
+          ...(payload === undefined ? {} : { payload: payload as any }),
+        });
+        assert.equal(
+          res.statusCode,
+          expected,
+          method + " " + path + ": " + res.body,
+        );
+        return res;
+      };
+      assert.equal((await native("/me")).json().user.id, phoneUser.id);
+      await native("/orgs", "POST", { name: "Phone Organization" }, 403, {
+        "x-csrf-token": "",
+      });
+      await native("/orgs", "POST", { name: "Phone Organization" }, 403, {
+        origin: "https://untrusted.example",
+      });
+      const organization = (
+        await native("/orgs", "POST", { name: "Phone Organization" })
+      ).json().id;
+      assert.ok(organization);
+      const webOrgs = (
+        await request("/orgs", "GET", undefined, phoneUser)
+      ).json().organizations;
+      assert.ok(webOrgs.some((o: any) => o.id === organization));
+      await native(`/channels/${channelA}/messages`, "GET", undefined, 404);
+      const webToken = phoneUser.cookie.split("=")[1];
+      await native("/me", "GET", undefined, 401, {
+        authorization: "Bearer " + webToken,
+      });
+      const cookieSpoof = await app.inject({
+        url: "/api/me",
+        headers: { cookie: "cf_session=" + credentials.token },
+      });
+      assert.equal(cookieSpoof.statusCode, 401);
+      const [stored] = await db.q(
+        "SELECT token_hash FROM sessions WHERE user_id=$1 AND client_type='mobile'",
+        [phoneUser.id],
+      );
+      assert.notEqual(stored.token_hash, credentials.token);
+      await native("/auth/logout", "POST", {});
+      await native("/me", "GET", undefined, 401);
+      await request("/me", "GET", undefined, phoneUser);
+      const next = (
+        await request("/auth/mobile-login", "POST", {
+          email: phoneUser.email,
+          password,
+        })
+      ).json();
+      await request(
+        `/admin/users/${phoneUser.id}`,
+        "PATCH",
+        { disabled: true },
+        alice,
+      );
+      const revoked = await app.inject({
+        url: "/api/me",
+        headers: { origin: c.origin, authorization: "Bearer " + next.token },
+      });
+      assert.equal(revoked.statusCode, 401);
+    },
+  );
 });

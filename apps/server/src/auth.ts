@@ -98,7 +98,11 @@ export function authRoutes({ app, db, c, events }: Context) {
         "Check your email to verify your account. If an account already exists, sign in or reset your password.",
     };
   });
-  app.post("/api/auth/login", { config: authLimit }, async (req, reply) => {
+  async function signIn(
+    req: import("fastify").FastifyRequest,
+    reply: import("fastify").FastifyReply,
+    native = false,
+  ) {
     const input = z
       .object({ email, password: z.string().max(200) })
       .parse(req.body);
@@ -112,16 +116,17 @@ export function authRoutes({ app, db, c, events }: Context) {
     const token = secret(),
       csrf = secret();
     await db.q(
-      "INSERT INTO sessions(token_hash,user_id,csrf,expires_at) VALUES($1,$2,$3,now()+interval '30 days')",
-      [hash(token), u.id, csrf],
+      "INSERT INTO sessions(token_hash,user_id,csrf,expires_at,client_type) VALUES($1,$2,$3,now()+interval '30 days',$4)",
+      [hash(token), u.id, csrf, native ? "mobile" : "web"],
     );
-    reply.setCookie("cf_session", token, {
-      httpOnly: true,
-      secure: c.production,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 30 * 24 * 60 * 60,
-    });
+    if (!native)
+      reply.setCookie("cf_session", token, {
+        httpOnly: true,
+        secure: c.production,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 30 * 24 * 60 * 60,
+      });
     return {
       user: {
         id: u.id,
@@ -134,8 +139,20 @@ export function authRoutes({ app, db, c, events }: Context) {
         must_change_password: u.must_change_password,
       },
       csrf,
+      ...(native
+        ? {
+            token,
+            expiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+          }
+        : {}),
     };
-  });
+  }
+  app.post("/api/auth/login", { config: authLimit }, (req, reply) =>
+    signIn(req, reply),
+  );
+  app.post("/api/auth/mobile-login", { config: authLimit }, (req, reply) =>
+    signIn(req, reply, true),
+  );
   app.post("/api/auth/verify", { config: authLimit }, async (req) => {
     const { token } = z
       .object({ token: z.string().min(20).max(100) })

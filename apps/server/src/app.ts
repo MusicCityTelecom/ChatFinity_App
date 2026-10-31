@@ -95,6 +95,7 @@ export async function createApp(
     "/api/config",
     "/api/auth/signup",
     "/api/auth/login",
+    "/api/auth/mobile-login",
     "/api/auth/verify",
     "/api/auth/forgot",
     "/api/auth/reset",
@@ -107,12 +108,17 @@ export async function createApp(
     if (writes && req.headers.origin !== c.origin)
       fail(403, "Request origin is not allowed.");
     if (publicPaths.has(path)) return;
-    const token = req.cookies.cf_session;
+    const authorization = req.headers.authorization;
+    const nativeToken = authorization?.match(
+      /^Bearer ([A-Za-z0-9_-]{43})$/,
+    )?.[1];
+    if (authorization && !nativeToken) fail(401, "Invalid mobile session.");
+    const token = nativeToken || req.cookies.cf_session;
     if (!token) fail(401, "Please sign in.");
     const sessionHash = hash(token),
       [u] = await db.q<User>(
-        `SELECT u.id,u.email,u.name,u.verified_at,u.status,u.is_system_admin,u.can_create_org,u.must_change_password,s.csrf FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.disabled_at IS NULL`,
-        [sessionHash],
+        `SELECT u.id,u.email,u.name,u.verified_at,u.status,u.is_system_admin,u.can_create_org,u.must_change_password,s.csrf FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.disabled_at IS NULL AND s.client_type=$2`,
+        [sessionHash, nativeToken ? "mobile" : "web"],
       );
     if (!u) fail(401, "Your session has expired. Please sign in.");
     req.user = {
@@ -131,7 +137,9 @@ export async function createApp(
       fail(403, "Session security token expired. Reload and try again.");
     if (
       u.must_change_password &&
-      !["/api/auth/change-password", "/api/auth/logout"].includes(path)
+      !["/api/me", "/api/auth/change-password", "/api/auth/logout"].includes(
+        path,
+      )
     )
       fail(403, "Change your temporary password before continuing.");
     if (

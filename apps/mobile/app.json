@@ -1,0 +1,58 @@
+{
+  "expo": {
+    "name": "ChatFinity",
+    "slug": "chatfinity",
+    "version": "0.1.0",
+    "scheme": "chatfinity",
+    "orientation": "default",
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "net.innaware.chatfinity",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Use your camera when you choose to join a ChatFinity video meeting.",
+        "NSMicrophoneUsageDescription": "Use your microphone when you choose to speak in a ChatFinity meeting.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "net.innaware.chatfinity",
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
+        "BLUETOOTH_CONNECT",
+        "FOREGROUND_SERVICE_MEDIA_PROJECTION"
+      ],
+      "blockedPermissions": [
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#133D43"
+      }
+    },
+    "plugins": [
+      [
+        "@livekit/react-native-expo-plugin",
+        {
+          "android": {
+            "enableScreenShareService": true
+          }
+        }
+      ],
+      "@config-plugins/react-native-webrtc",
+      "expo-secure-store",
+      "expo-document-picker",
+      "expo-sharing",
+      "expo-audio"
+    ],
+    "extra": {
+      "serverUrl": "https://chat.innaware.net"
+    }
+  }
+}
