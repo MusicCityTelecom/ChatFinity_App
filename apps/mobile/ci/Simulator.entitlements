@@ -2,7 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <!-- Simulator-only identity. Physical devices use the Apple team's provisioning. -->
+  <!-- Simulator-only identity: Xcode embeds this with ad-hoc signing enabled.
+       Physical devices use the Apple team's provisioning, never this file. -->
   <key>application-identifier</key>
   <string>net.innaware.chatfinity.preview</string>
   <key>keychain-access-groups</key>

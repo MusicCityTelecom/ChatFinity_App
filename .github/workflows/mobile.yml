@@ -9,7 +9,8 @@ permissions:
 jobs:
   validate:
     outputs:
-      mobile_changed: ${{ steps.scope.outputs.mobile_changed }}
+      android_changed: ${{ steps.scope.outputs.android_changed }}
+      ios_changed: ${{ steps.scope.outputs.ios_changed }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -23,10 +24,15 @@ jobs:
           PUSH_BASE: ${{ github.event.before }}
           EVENT_NAME: ${{ github.event_name }}
         run: |
-          if [ "$EVENT_NAME" = workflow_dispatch ] || ! git diff --quiet "$PUSH_BASE" HEAD -- apps/mobile; then
-            echo "mobile_changed=true" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT_NAME" = workflow_dispatch ] || ! git diff --quiet "$PUSH_BASE" HEAD -- . ':(exclude)ci/Simulator.entitlements' ':(exclude).maestro'; then
+            echo "android_changed=true" >> "$GITHUB_OUTPUT"
           else
-            echo "mobile_changed=false" >> "$GITHUB_OUTPUT"
+            echo "android_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+          if [ "$EVENT_NAME" = workflow_dispatch ] || ! git diff --quiet "$PUSH_BASE" HEAD -- . ':(exclude)plugins/with-livekit-android.cjs' ':(exclude).maestro'; then
+            echo "ios_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ios_changed=false" >> "$GITHUB_OUTPUT"
           fi
       - uses: actions/setup-node@v4
         with:
@@ -40,6 +46,7 @@ jobs:
       - run: npx expo export --platform android --output-dir .export/android --max-workers 2
       - run: npx expo export --platform ios --output-dir .export/ios --max-workers 2
   android:
+    if: needs.validate.outputs.android_changed == 'true'
     concurrency:
       group: mobile-android-${{ github.ref }}
       cancel-in-progress: true
@@ -81,7 +88,7 @@ jobs:
           path: apps/mobile/build/
           retention-days: 30
   ios:
-    if: needs.validate.outputs.mobile_changed == 'true'
+    if: needs.validate.outputs.ios_changed == 'true'
     concurrency:
       group: mobile-ios-${{ github.ref }}
       cancel-in-progress: true
