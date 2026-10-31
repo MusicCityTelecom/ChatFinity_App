@@ -79,6 +79,7 @@ jobs:
           python3 - <<'PY'
           import base64,pathlib
           p=pathlib.Path('build/ChatFinity-login.png')
+          if not p.exists(): p=pathlib.Path('build/ChatFinity-failure.png')
           if p.exists():
             b=base64.b64encode(p.read_bytes()).decode()
             for i in range(0,len(b),8000): print('CHATFINITY_SCREENSHOT_PART:'+b[i:i+8000])
@@ -89,6 +90,7 @@ jobs:
           name: ChatFinity-Android-UI-check
           path: |
             apps/mobile/build/*.png
+            apps/mobile/build/*.log
             ~/.maestro/tests/
           retention-days: 14
   ios:
@@ -124,9 +126,14 @@ jobs:
       - name: Capture preview for review
         if: always()
         run: |
+          xcrun simctl io booted screenshot build/ChatFinity-failure.png || true
+          xcrun simctl spawn booted log show --last 3m --style compact --predicate 'process == "ChatFinityPreview"' > build/ChatFinity-runtime.log || true
+          tail -100 build/ChatFinity-runtime.log
+          "$HOME/.maestro/bin/maestro" hierarchy || true
           python3 - <<'PY'
           import base64,pathlib
           p=pathlib.Path('build/ChatFinity-login.png')
+          if not p.exists(): p=pathlib.Path('build/ChatFinity-failure.png')
           if p.exists():
             b=base64.b64encode(p.read_bytes()).decode()
             for i in range(0,len(b),8000): print('CHATFINITY_SCREENSHOT_PART:'+b[i:i+8000])
@@ -137,5 +144,6 @@ jobs:
           name: ChatFinity-iPhone-UI-check
           path: |
             apps/mobile/build/*.png
+            apps/mobile/build/*.log
             ~/.maestro/tests/
           retention-days: 14
