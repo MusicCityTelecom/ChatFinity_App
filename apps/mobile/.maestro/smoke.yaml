@@ -7,6 +7,9 @@ appId: net.innaware.chatfinity.preview
     timeout: 30000
 - assertVisible: "Password"
 - takeScreenshot: ${SCREENSHOT_DIR}/ChatFinity-login
+- scrollUntilVisible:
+    element: "New here.*Create an account"
+    direction: DOWN
 - tapOn: "New here.*Create an account"
 - assertVisible: "Your name"
 - scrollUntilVisible:
@@ -17,6 +20,9 @@ appId: net.innaware.chatfinity.preview
     element: "Back to sign in"
     direction: DOWN
 - tapOn: "Back to sign in"
+- scrollUntilVisible:
+    element: "Forgot your password.*"
+    direction: DOWN
 - tapOn: "Forgot your password.*"
 - assertVisible: "Send reset link"
 - tapOn: "Back to sign in"

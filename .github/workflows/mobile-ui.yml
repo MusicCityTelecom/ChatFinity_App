@@ -1,4 +1,6 @@
 name: Mobile device UI checks
+env:
+  MAESTRO_CLI_NO_ANALYTICS: "1"
 on:
   workflow_dispatch:
   workflow_run:
@@ -25,7 +27,7 @@ jobs:
             const repo = context.repo;
             const runIds = context.eventName === 'workflow_run'
               ? [context.payload.workflow_run.id]
-              : (await github.rest.actions.listWorkflowRuns({...repo, workflow_id:'mobile.yml', branch:'main', per_page:10})).data.workflow_runs.map(run=>run.id);
+              : (await github.rest.actions.listWorkflowRuns({...repo, workflow_id:'mobile.yml', branch:'main', per_page:10})).data.workflow_runs.filter(run=>run.conclusion==='success').map(run=>run.id);
             let android = '', ios = '';
             for (const id of runIds) {
               const artifacts = (await github.rest.actions.listWorkflowRunArtifacts({...repo,run_id:id})).data.artifacts.filter(a=>!a.expired);
@@ -72,7 +74,12 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
             adb install apps/mobile/build/android/ChatFinity-android-preview.apk
-            cd apps/mobile && "$HOME/.maestro/bin/maestro" test -e SCREENSHOT_DIR="$(pwd)/build" .maestro/smoke.yaml
+            cd apps/mobile
+            if ! "$HOME/.maestro/bin/maestro" test -e SCREENSHOT_DIR="$(pwd)/build" .maestro/smoke.yaml; then
+              adb exec-out screencap -p > build/ChatFinity-failure.png
+              adb logcat -d -t 500 > build/ChatFinity-runtime.log
+              exit 1
+            fi
       - name: Capture preview for review
         if: always()
         run: |
@@ -129,7 +136,6 @@ jobs:
           xcrun simctl io booted screenshot build/ChatFinity-failure.png || true
           xcrun simctl spawn booted log show --last 3m --style compact --predicate 'process == "ChatFinityPreview"' > build/ChatFinity-runtime.log || true
           tail -100 build/ChatFinity-runtime.log
-          "$HOME/.maestro/bin/maestro" hierarchy || true
           python3 - <<'PY'
           import base64,pathlib
           p=pathlib.Path('build/ChatFinity-login.png')
