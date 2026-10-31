@@ -75,7 +75,7 @@ jobs:
           script: |
             adb install apps/mobile/build/android/ChatFinity-android-preview.apk
             cd apps/mobile
-            if ! "$HOME/.maestro/bin/maestro" test -e SCREENSHOT_DIR="$(pwd)/build" .maestro/smoke.yaml; then
+            if ! "$HOME/.maestro/bin/maestro" test --test-output-dir=build/ui .maestro/smoke.yaml; then
               adb exec-out screencap -p > build/ChatFinity-failure.png
               adb logcat -d -t 500 > build/ChatFinity-runtime.log
               exit 1
@@ -85,8 +85,9 @@ jobs:
         run: |
           python3 - <<'PY'
           import base64,pathlib
-          p=pathlib.Path('build/ChatFinity-login.png')
-          if not p.exists(): p=pathlib.Path('build/ChatFinity-failure.png')
+          shots=list(pathlib.Path('build/ui').rglob('*ChatFinity-login*.png'))
+          p=shots[0] if shots else pathlib.Path('build/ChatFinity-failure.png')
+          if shots: pathlib.Path('build/ChatFinity-login.png').write_bytes(p.read_bytes())
           if p.exists():
             b=base64.b64encode(p.read_bytes()).decode()
             for i in range(0,len(b),8000): print('CHATFINITY_SCREENSHOT_PART:'+b[i:i+8000])
@@ -129,7 +130,7 @@ jobs:
           xcrun simctl boot "$DEVICE_ID" || true
           xcrun simctl bootstatus "$DEVICE_ID" -b
           xcrun simctl install "$DEVICE_ID" build/ios/ChatFinityPreview.app
-          "$HOME/.maestro/bin/maestro" --device "$DEVICE_ID" test -e SCREENSHOT_DIR="$(pwd)/build" .maestro/smoke.yaml
+          "$HOME/.maestro/bin/maestro" --device "$DEVICE_ID" test --test-output-dir=build/ui .maestro/smoke.yaml
       - name: Capture preview for review
         if: always()
         run: |
@@ -138,8 +139,9 @@ jobs:
           tail -100 build/ChatFinity-runtime.log
           python3 - <<'PY'
           import base64,pathlib
-          p=pathlib.Path('build/ChatFinity-login.png')
-          if not p.exists(): p=pathlib.Path('build/ChatFinity-failure.png')
+          shots=list(pathlib.Path('build/ui').rglob('*ChatFinity-login*.png'))
+          p=shots[0] if shots else pathlib.Path('build/ChatFinity-failure.png')
+          if shots: pathlib.Path('build/ChatFinity-login.png').write_bytes(p.read_bytes())
           if p.exists():
             b=base64.b64encode(p.read_bytes()).decode()
             for i in range(0,len(b),8000): print('CHATFINITY_SCREENSHOT_PART:'+b[i:i+8000])

@@ -6,7 +6,7 @@ appId: net.innaware.chatfinity.preview
     visible: "Email address"
     timeout: 30000
 - assertVisible: "Password"
-- takeScreenshot: ${SCREENSHOT_DIR}/ChatFinity-login
+- takeScreenshot: ChatFinity-login
 - scrollUntilVisible:
     element: "New here.*Create an account"
     direction: DOWN
