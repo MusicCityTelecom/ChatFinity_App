@@ -105,7 +105,7 @@ jobs:
       - name: Compile iPhone simulator app
         run: |
           set -o pipefail
-          xcodebuild -workspace ios/ChatFinityPreview.xcworkspace -scheme ChatFinityPreview -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build/ios CODE_SIGNING_ALLOWED=NO build | tee /tmp/chatfinity-ios-build.log | tail -80
+          xcodebuild -workspace ios/ChatFinityPreview.xcworkspace -scheme ChatFinityPreview -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build/ios CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual CODE_SIGN_ENTITLEMENTS="$(pwd)/ci/Simulator.entitlements" build | tee /tmp/chatfinity-ios-build.log | tail -80
         env: { CI: "1" }
       - name: Package simulator build
         run: |

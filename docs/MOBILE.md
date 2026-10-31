@@ -9,7 +9,7 @@ The native React Native/Expo application is in `apps/mobile`. It connects to **h
 - Public-channel discovery/joining, private groups, direct messages, scoped people/presence, conversation search, unread badges and live WebSocket updates with reconnect/foreground refresh.
 - Messaging with retained in-memory drafts, retries retaining the same message ID, replies, emoji reactions, saved messages, edit/remove controls, earlier history and read acknowledgements.
 - Native document picker uploads and authorized attachment downloads into private app cache, with a system share sheet. Downloads are cleared on sign-out. Shared copies in other apps remain under those apps' control. File limits remain the server's 20 MB/file and five attachments/message.
-- Multi-organization broadcasts, profile/presence controls, Do Not Disturb, opt-in sound/vibration settings and native light/dark layouts with safe-area/keyboard handling.
+- Multi-organization broadcasts, profile/presence controls, Do Not Disturb, sound/vibration settings and native light/dark layouts with safe-area/keyboard handling.
 - Native LiveKit meeting prejoin, microphone/camera toggles, participant video/audio, receiving shared screens, leaving a call and host/admin end-for-everyone. Android also has a screen-sharing control and foreground projection service. iPhone screen broadcast publishing requires a future ReplayKit extension; viewing shared screens works through the SDK.
 
 ## Session security
@@ -38,7 +38,7 @@ LiveKit requires native code; Expo Go cannot run this app. Use the generated nat
 
 The **Mobile preview builds** GitHub Actions workflow checks dependencies/types, creates Android and iOS JavaScript bundles, compiles a standalone Android APK on Linux and an iPhone simulator application on macOS. Artifacts contain SHA-256 checksums. The preview uses the separate `net.innaware.chatfinity.preview` identifier so it can coexist with a future store application.
 
-The Android preview APK embeds its JavaScript and uses a development signing key; it needs neither Metro nor a Google Play account to install for internal testing. It is not a production signing identity. Only install preview builds obtained from this repository's trusted Actions run. The iOS simulator ZIP is for Xcode's simulator on a Mac, not an installable iPhone IPA.
+The Android preview APK embeds its JavaScript and uses a development signing key; it needs neither Metro nor a Google Play account to install for internal testing. It is not a production signing identity. Only install preview builds obtained from this repository's trusted Actions run. The iOS simulator ZIP is for Xcode's simulator on a Mac, not an installable iPhone IPA. It is signed ad hoc with a simulator-only application/keychain identity so secure storage remains enabled; physical-device/store builds use the owner's Apple signing identity and provisioning.
 
 `eas.json` includes development, preview and production profiles for later signed builds. EAS is optional; the initial GitHub builds do not require an Expo account. Production builds use `CHATFINITY_BUILD_CHANNEL=production` for the canonical `net.innaware.chatfinity` app identifier. Keep all signing keys and credentials outside Git.
 

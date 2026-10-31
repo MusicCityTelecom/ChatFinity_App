@@ -52,7 +52,10 @@ function Root() {
       if (await restoreSession())
         setUser((await api<{ user: User }>("/me")).user);
     } catch (e) {
-      setError((e as Error).message);
+      console.warn("Session restore failed", e);
+      setError(
+        "We couldn’t open your saved sign-in. Check your connection and try again, or return to sign in.",
+      );
     } finally {
       setLoading(false);
     }

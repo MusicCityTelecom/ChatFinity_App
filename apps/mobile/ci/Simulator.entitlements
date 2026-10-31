@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Simulator-only identity. Physical devices use the Apple team's provisioning. -->
+  <key>application-identifier</key>
+  <string>net.innaware.chatfinity.preview</string>
+  <key>keychain-access-groups</key>
+  <array><string>net.innaware.chatfinity.preview</string></array>
+  <key>get-task-allow</key>
+  <true/>
+</dict>
+</plist>
