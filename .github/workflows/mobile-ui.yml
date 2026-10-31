@@ -74,12 +74,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
             adb install apps/mobile/build/android/ChatFinity-android-preview.apk
-            cd apps/mobile
-            if ! "$HOME/.maestro/bin/maestro" test --test-output-dir=build/ui .maestro/smoke.yaml; then
-              adb exec-out screencap -p > build/ChatFinity-failure.png
-              adb logcat -d -t 500 > build/ChatFinity-runtime.log
-              exit 1
-            fi
+            bash apps/mobile/.maestro/check-android.sh
       - name: Capture preview for review
         if: always()
         run: |
